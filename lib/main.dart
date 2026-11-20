@@ -650,3 +650,310 @@ Widget pageLayout(
 }
   );
 }
+Future<void> addItem(BuildContext context, String type) async {
+  final controller = TextEditingController();
+  final amountController = TextEditingController();
+
+  String title = '';
+  String amount = '';
+
+  await showDialog(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      backgroundColor: const Color(0xFF17213B),
+      title: Text(
+        'Add ${type[0].toUpperCase()}${type.substring(1)}',
+        style: const TextStyle(color: Colors.white),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: controller,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: 'Enter name or title',
+            ),
+          ),
+          if (type == 'expenses')
+            TextField(
+              controller: amountController,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                hintText: 'Enter amount',
+              ),
+            ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            title = controller.text.trim();
+            amount = amountController.text.trim();
+
+            if (title.isEmpty) return;
+
+            await AuvxStore.addRecord(type, {
+              'title': title,
+              'amount': amount,
+              'done': false,
+              'createdAt': DateTime.now().toIso8601String(),
+            });
+
+            if (dialogContext.mounted) {
+              Navigator.pop(dialogContext);
+            }
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    ),
+  );
+}
+
+class TasksPage extends StatefulWidget {
+  const TasksPage({super.key});
+
+  @override
+  State<TasksPage> createState() => _TasksPageState();
+}
+
+class _TasksPageState extends State<TasksPage> {
+  @override
+  Widget build(BuildContext context) {
+    return pageLayout(
+      context,
+      'My Tasks',
+      'Manage your daily tasks',
+      'tasks',
+      Icons.task_alt,
+      () => setState(() {}),
+    );
+  }
+}
+
+class HabitsPage extends StatefulWidget {
+  const HabitsPage({super.key});
+
+  @override
+  State<HabitsPage> createState() => _HabitsPageState();
+}
+
+class _HabitsPageState extends State<HabitsPage> {
+  @override
+  Widget build(BuildContext context) {
+    return pageLayout(
+      context,
+      'My Habits',
+      'Build better everyday habits',
+      'habits',
+      Icons.repeat,
+      () => setState(() {}),
+    );
+  }
+}
+
+class NotesPage extends StatefulWidget {
+  const NotesPage({super.key});
+
+  @override
+  State<NotesPage> createState() => _NotesPageState();
+}
+
+class _NotesPageState extends State<NotesPage> {
+  @override
+  Widget build(BuildContext context) {
+    return pageLayout(
+      context,
+      'My Notes',
+      'Keep your important ideas',
+      'notes',
+      Icons.edit_note,
+      () => setState(() {}),
+    );
+  }
+}
+
+class MoneyPage extends StatefulWidget {
+  const MoneyPage({super.key});
+
+  @override
+  State<MoneyPage> createState() => _MoneyPageState();
+}
+
+class _MoneyPageState extends State<MoneyPage> {
+  @override
+  Widget build(BuildContext context) {
+    return pageLayout(
+      context,
+      'Money Manager',
+      'Track your expenses',
+      'expenses',
+      Icons.account_balance_wallet,
+      () => setState(() {}),
+    );
+  }
+}
+
+Widget pageLayout(
+  BuildContext context,
+  String title,
+  String subtitle,
+  String type,
+  IconData pageIcon,
+  VoidCallback refresh,
+) {
+  return StatefulBuilder(
+    builder: (context, updatePage) {
+      final items = List<Map<String, dynamic>>.from(
+        AuvxStore.data[type] ?? [],
+      );
+
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(pageIcon, color: const Color(0xFF55E6FF), size: 30),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 25,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          subtitle,
+                          style: const TextStyle(color: Colors.white60),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () async {
+                      await addItem(context, type);
+                      updatePage(() {});
+                    },
+                    icon: const Icon(
+                      Icons.add_circle,
+                      color: Color(0xFF55E6FF),
+                      size: 32,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 25),
+              Expanded(
+                child: items.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              pageIcon,
+                              size: 55,
+                              color: Colors.white24,
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Nothing here yet',
+                              style: TextStyle(color: Colors.white54),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Tap + to add something',
+                              style: TextStyle(color: Colors.white38),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: items.length,
+                        itemBuilder: (context, index) {
+                          final item = items[index];
+                          final isDone = item['done'] == true;
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: glassBox(
+                              child: Row(
+                                children: [
+                                  if (type == 'tasks' || type == 'habits')
+                                    Checkbox(
+                                      value: isDone,
+                                      activeColor: const Color(0xFF55E6FF),
+                                      onChanged: (value) async {
+                                        await AuvxStore.updateRecord(
+                                          type,
+                                          index,
+                                          {'done': value ?? false},
+                                        );
+                                        updatePage(() {});
+                                      },
+                                    ),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          item['title'] ?? '',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            decoration: isDone
+                                                ? TextDecoration.lineThrough
+                                                : null,
+                                          ),
+                                        ),
+                                        if (type == 'expenses')
+                                          Text(
+                                            '৳${item['amount'] ?? '0'}',
+                                            style: const TextStyle(
+                                              color: Color(0xFF55E6FF),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () async {
+                                      await AuvxStore.removeRecord(
+                                        type,
+                                        index,
+                                      );
+                                      updatePage(() {});
+                                    },
+                                    icon: const Icon(
+                                      Icons.delete_outline,
+                                      color: Colors.redAccent,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
